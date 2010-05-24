@@ -2,6 +2,11 @@
 
 bool MyApp::OnInit() {
     wxFrame *frame = new MyFrame(wxT("ラバーバンド"));
+
+    frame->Show(TRUE);
+    SetTopWindow(frame);
+
+    return TRUE;
 }
 
 MyFrame::MyFrame(const wxString& title)
