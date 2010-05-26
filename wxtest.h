@@ -63,7 +63,8 @@ public:
     MyCanvas(MyFrame* parent);
     
     void OnPaint(wxPaintEvent& event);
-    // void OnMouseMove(wxMouseEvent& event);
+    void OnMouseMotion(wxMouseEvent& event);
+    void OnMouseLeftDown(wxMouseEvent& event);
     
 protected:
     void DrawSplines(wxDC& dc);
@@ -80,6 +81,8 @@ private:
 
 BEGIN_EVENT_TABLE(MyCanvas, wxScrolledWindow)
     EVT_PAINT(MyCanvas::OnPaint)
+    EVT_MOTION(MyCanvas::OnMouseMotion)
+    EVT_LEFT_DOWN(MyCanvas::OnMouseLeftDown)
 END_EVENT_TABLE()
 
 IMPLEMENT_APP(MyApp)

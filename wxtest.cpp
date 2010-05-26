@@ -11,9 +11,7 @@ bool MyApp::OnInit() {
 
 
 
-MyFrame::MyFrame(const wxString& title)
-    : wxFrame((wxFrame *)NULL, -1, title)
-{
+MyFrame::MyFrame(const wxString& title) : wxFrame((wxFrame *)NULL, -1, title) {
     wxMenu *menuFile = new wxMenu();
     menuFile->Append(Menu_File_About,
         wxT("Menu(&A)...\tCtrl-A"),
@@ -33,7 +31,7 @@ MyFrame::MyFrame(const wxString& title)
     SetStatusText(wxT("Welcome to wxWidgets!"));
 #endif
     
-    m_textureBackground = false;
+    m_textureBackground = true;
     m_xAxisReversed = false;
     m_yAxisReversed = false;
     m_mapMode = wxMM_TEXT;
@@ -47,7 +45,7 @@ MyFrame::MyFrame(const wxString& title)
     m_colourBackground = *wxBLUE;
     
     m_canvas = new MyCanvas(this);
-    //m_canvas->SetScrollbars(10, 10, 100, 240);
+    m_canvas->SetScrollbars(10, 10, 100, 100);
 }
 
 void MyFrame::PrepareDC(wxDC& dc) {
@@ -63,8 +61,8 @@ void MyFrame::OnQuit(wxCommandEvent& WXUNUSED(event)) {
 
 void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event)) {
     wxMessageBox(wxT("ラバーバンド\n"),
-        wxT("このアプリケーションについて"),
-        wxOK | wxICON_INFORMATION, this);
+    wxT("このアプリケーションについて"),
+    wxOK | wxICON_INFORMATION, this);
 }
 
 
@@ -80,20 +78,14 @@ MyCanvas::MyCanvas(MyFrame* parent) :
 #endif
 }
 
-void MyCanvas::DrawSplines(wxDC& dc)
-{
+void MyCanvas::DrawSplines(wxDC& dc) {
 #if wxUSE_SPLINES
     dc.DrawText(wxT("Some splines"), 10, 5);
 
-    // values are hardcoded rather than randomly generated
-    // so the output can be compared between native
-    // implementations on platforms with different random
-    // generators
-
-    const int R = 300;
-    const wxPoint center( R + 20, R + 20 );
-    const int angles[7] = { 0, 10, 33, 77, 13, 145, 90 };
-    const int radii[5] = { 100 , 59, 85, 33, 90 };
+    const int R = 100;
+    const wxPoint center(R + 20, R + 20);
+    const int angles[7] = {0, 10, 33, 77, 13, 145, 90};
+    const int radii[5] = {100, 59, 85, 33, 90};
     const int n = 200;
     wxPoint pts[n];
 
@@ -101,52 +93,25 @@ void MyCanvas::DrawSplines(wxDC& dc)
     unsigned int radius_pos = 0;
     unsigned int angle_pos = 0;
     int angle = 0;
-    for ( int i = 0; i < n; i++ )
-    {
-        angle += angles[ angle_pos ];
-        int r = R * radii[ radius_pos ] / 100;
-        pts[ i ].x = center.x + (wxCoord)( r * cos( M_PI * angle / 180.0) );
-        pts[ i ].y = center.y + (wxCoord)( r * sin( M_PI * angle / 180.0) );
+    for (int i = 0; i < n; i++) {
+        angle += angles[angle_pos];
+        int r = R * radii[radius_pos] / 100;
+        pts[i].x = center.x + (wxCoord)(r * cos( M_PI * angle / 180.0));
+        pts[i].y = center.y + (wxCoord)(r * sin( M_PI * angle / 180.0));
 
         angle_pos++;
-        if ( angle_pos >= WXSIZEOF(angles) ) angle_pos = 0;
+        if (angle_pos >= WXSIZEOF(angles)) angle_pos = 0;
 
         radius_pos++;
-        if ( radius_pos >= WXSIZEOF(radii) ) radius_pos = 0;
+        if (radius_pos >= WXSIZEOF(radii)) radius_pos = 0;
     }
 
     // background spline drawing
     dc.SetPen(*wxRED_PEN);
     dc.DrawSpline(WXSIZEOF(pts), pts);
 
-    // less detailed spline calculation
-    wxPoint letters[4][5];
-    // w
-    letters[0][0] = wxPoint( 0,1); //  O           O
-    letters[0][1] = wxPoint( 1,3); //   *         *
-    letters[0][2] = wxPoint( 2,2); //    *   O   *
-    letters[0][3] = wxPoint( 3,3); //     * * * *
-    letters[0][4] = wxPoint( 4,1); //      O   O
-
-    const int dx = 2 * R / letters[3][4].x;
-    const int h[4] = { -R/2, 0, R/4, R/2 };
-
-    for ( int m = 0; m < 1; m++ )
-    {
-        for ( int n = 0; n < 5; n++ )
-        {
-            letters[m][n].x = center.x - R + letters[m][n].x * dx;
-            letters[m][n].y = center.y + h[ letters[m][n].y ];
-        }
-
-        dc.SetPen(wxPen(wxT("blue"), 1, wxDOT));
-        dc.DrawLines(5, letters[m]);
-        dc.SetPen(wxPen(wxT("black"), 4, wxSOLID));
-        // dc.DrawSpline(5, letters[m]);
-    }
-
 #else
-    dc.DrawText(_T("Splines not supported."), 10, 5);
+    dc.DrawText(wxT("Splines not supported."), 10, 5);
 #endif
 }
 
@@ -162,7 +127,6 @@ void MyCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
 #endif
 
     PrepareDC(dc);
-
     m_owner->PrepareDC(dc);
 
     dc.SetBackgroundMode(m_owner->m_backgroundMode);
@@ -194,6 +158,30 @@ void MyCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
         }
     }
 
-    DrawSplines(dc);
-    
+    // DrawSplines(dc);
 }
+
+void MyCanvas::OnMouseMotion(wxMouseEvent &event) {
+#if wxUSE_STATUSBAR
+    wxClientDC dc(this);
+    PrepareDC(dc);
+    m_owner->PrepareDC(dc);
+
+    wxPoint pos = event.GetPosition();
+    long x = dc.DeviceToLogicalX(pos.x);
+    long y = dc.DeviceToLogicalY(pos.y);
+    wxString str;
+    str.Printf(wxT("Current mouse position: %d,%d"), (int)x, (int)y);
+    m_owner->SetStatusText(str);
+#else
+    wxUnusedVar(event);
+#endif
+}
+
+void MyCanvas::OnMouseLeftDown(wxMouseEvent& event) {
+    wxClientDC dc(this);
+    PrepareDC(dc);
+    m_owner->PrepareDC(dc);
+    dc.DrawText(wxT("Left button is clicked."), 10, 5);
+}
+
