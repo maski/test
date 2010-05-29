@@ -1,11 +1,11 @@
 #include "wxtest.h"
 
 bool MyApp::OnInit() {
-    wxFrame *frame = new MyFrame(wxT("ラバーバンド"));
-
+    wxFrame *frame = new MyFrame(wxT("Drawツール"));
+    
     frame->Show(TRUE);
     SetTopWindow(frame);
-
+    
     return TRUE;
 }
 
@@ -26,12 +26,9 @@ MyFrame::MyFrame(const wxString& title) : wxFrame((wxFrame *)NULL, -1, title) {
 
     SetMenuBar(menuBar);
     
-#if wxUSE_STATUSBAR
     CreateStatusBar(2);
     SetStatusText(wxT("Welcome to wxWidgets!"));
-#endif
     
-    m_textureBackground = true;
     m_xAxisReversed = false;
     m_yAxisReversed = false;
     m_mapMode = wxMM_TEXT;
@@ -41,11 +38,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame((wxFrame *)NULL, -1, title) {
     m_xUserScale = 1.0;
     m_yUserScale = 1.0;
     
-    m_colourForeground = *wxRED;
-    m_colourBackground = *wxBLUE;
-    
-    m_canvas = new MyCanvas(this);
-    m_canvas->SetScrollbars(10, 10, 100, 100);
+    m_canvas = new MyCanvas(this, (DrawingView *)NULL);
 }
 
 void MyFrame::PrepareDC(wxDC& dc) {
@@ -67,102 +60,29 @@ void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event)) {
 
 
 
-MyCanvas::MyCanvas(MyFrame* parent) :
+MyCanvas::MyCanvas(MyFrame* parent, DrawingView* view) :
     wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
     wxHSCROLL | wxVSCROLL | wxNO_FULL_REPAINT_ON_RESIZE)
 {
     m_owner = parent;
-    m_clip = false;
-#if wxUSE_GRAPHICS_CONTEXT
-    m_useContext = false;
-#endif
+    m_view = view;
 }
 
-void MyCanvas::DrawSplines(wxDC& dc) {
-#if wxUSE_SPLINES
-    dc.DrawText(wxT("Some splines"), 10, 5);
-
-    const int R = 100;
-    const wxPoint center(R + 20, R + 20);
-    const int angles[7] = {0, 10, 33, 77, 13, 145, 90};
-    const int radii[5] = {100, 59, 85, 33, 90};
-    const int n = 200;
-    wxPoint pts[n];
-
-    // background spline calculation
-    unsigned int radius_pos = 0;
-    unsigned int angle_pos = 0;
-    int angle = 0;
-    for (int i = 0; i < n; i++) {
-        angle += angles[angle_pos];
-        int r = R * radii[radius_pos] / 100;
-        pts[i].x = center.x + (wxCoord)(r * cos( M_PI * angle / 180.0));
-        pts[i].y = center.y + (wxCoord)(r * sin( M_PI * angle / 180.0));
-
-        angle_pos++;
-        if (angle_pos >= WXSIZEOF(angles)) angle_pos = 0;
-
-        radius_pos++;
-        if (radius_pos >= WXSIZEOF(radii)) radius_pos = 0;
-    }
-
-    // background spline drawing
-    dc.SetPen(*wxRED_PEN);
-    dc.DrawSpline(WXSIZEOF(pts), pts);
-
-#else
-    dc.DrawText(wxT("Splines not supported."), 10, 5);
-#endif
+void MyCanvas::OnDraw(wxDC& dc) {
+    if (m_view) m_view->OnDraw(&dc);
 }
 
-void MyCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
-{
+void MyCanvas::OnPaint(wxPaintEvent &WXUNUSED(event)) {
     wxPaintDC pdc(this);
-
-#if wxUSE_GRAPHICS_CONTEXT
-    wxGCDC gdc(pdc);
-    wxDC &dc = m_useContext ? (wxDC&)gdc : (wxDC&)pdc;
-#else
     wxDC &dc = pdc;
-#endif
-
     PrepareDC(dc);
     m_owner->PrepareDC(dc);
 
     dc.SetBackgroundMode(m_owner->m_backgroundMode);
-    if (m_owner->m_backgroundBrush.Ok())
-        dc.SetBackground(m_owner->m_backgroundBrush);
-    if (m_owner->m_colourForeground.Ok())
-        dc.SetTextForeground(m_owner->m_colourForeground);
-    if (m_owner->m_colourBackground.Ok())
-        dc.SetTextBackground(m_owner->m_colourBackground);
-
-    if (m_owner->m_textureBackground) {
-        if (!m_owner->m_backgroundBrush.Ok()) {
-            wxColour clr(0, 128, 0);
-            wxBrush b(clr, wxSOLID);
-            dc.SetBackground(b);
-        }
-    }
-
-    if (m_clip) {
-        dc.SetClippingRegion(100, 100, 100, 100);
-    }
-    
     dc.Clear();
-
-    if (m_owner->m_textureBackground) {
-        dc.SetPen(*wxMEDIUM_GREY_PEN);
-        for (int i = 0; i < 200; i++) {
-            dc.DrawLine(0, i*10, i*10, 0);
-        }
-    }
-
-    // DrawSplines(dc);
 }
 
 void MyCanvas::OnMouseMotion(wxMouseEvent &event) {
-#if wxUSE_STATUSBAR
     wxClientDC dc(this);
     PrepareDC(dc);
     m_owner->PrepareDC(dc);
@@ -173,9 +93,6 @@ void MyCanvas::OnMouseMotion(wxMouseEvent &event) {
     wxString str;
     str.Printf(wxT("Current mouse position: %d,%d"), (int)x, (int)y);
     m_owner->SetStatusText(str);
-#else
-    wxUnusedVar(event);
-#endif
 }
 
 void MyCanvas::OnMouseLeftDown(wxMouseEvent& event) {
@@ -183,5 +100,47 @@ void MyCanvas::OnMouseLeftDown(wxMouseEvent& event) {
     PrepareDC(dc);
     m_owner->PrepareDC(dc);
     dc.DrawText(wxT("Left button is clicked."), 10, 5);
+}
+
+void MyCanvas::OnMouseEvent(wxMouseEvent& event) {
+    wxClientDC dc(this);
+    PrepareDC(dc);
+    dc.SetPen(*wxBLACK_PEN);
+    
+    wxPoint pt(event.GetLogicalPosition(dc));
+    
+    // m_viewが作られてない。
+    //m_view->GetDocument()->Modify(true);
+    
+    dc.DrawLine(0, 0, pt.x, pt.y);
+}
+
+DrawingView::DrawingView() {canvas = (MyCanvas *)NULL;}
+
+DrawingView::~DrawingView() {}
+
+bool DrawingView::OnCreate(wxDocument *doc, long WXUNUSED(flags)) {
+    frame = (MyFrame *)NULL;
+    frame->Show(true);
+    Activate(true);
+    
+    return true;
+}
+
+void DrawingView::OnDraw(wxDC *dc) {
+    dc->SetFont(*wxNORMAL_FONT);
+    dc->SetPen(*wxBLACK_PEN);
+}
+
+void DrawingView::OnUpdate(wxView *sender, wxObject *hint) {
+    ;
+}
+
+bool DrawingView::OnClose(bool deleteWindow) {
+    return true;
+}
+
+void DrawingView::OnCut(wxCommandEvent& WXUNUSED(event)) {
+    wxDocument *doc = (wxDocument *)GetDocument();
 }
 
