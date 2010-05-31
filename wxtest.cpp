@@ -38,7 +38,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame((wxFrame *)NULL, -1, title) {
     m_xUserScale = 1.0;
     m_yUserScale = 1.0;
     
-    m_canvas = new MyCanvas(this, (DrawingView *)NULL);
+    m_canvas = new MyCanvas(this);
 }
 
 void MyFrame::PrepareDC(wxDC& dc) {
@@ -60,16 +60,16 @@ void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event)) {
 
 
 
-MyCanvas::MyCanvas(MyFrame* parent, DrawingView* view) :
+MyCanvas::MyCanvas(MyFrame* parent) :
     wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
     wxHSCROLL | wxVSCROLL | wxNO_FULL_REPAINT_ON_RESIZE)
 {
     m_owner = parent;
-    m_view = view;
+    clicked = false;
 }
 
 void MyCanvas::OnDraw(wxDC& dc) {
-    if (m_view) m_view->OnDraw(&dc);
+    // if (m_view) m_view->OnDraw(&dc);
 }
 
 void MyCanvas::OnPaint(wxPaintEvent &WXUNUSED(event)) {
@@ -99,7 +99,14 @@ void MyCanvas::OnMouseLeftDown(wxMouseEvent& event) {
     wxClientDC dc(this);
     PrepareDC(dc);
     m_owner->PrepareDC(dc);
-    dc.DrawText(wxT("Left button is clicked."), 10, 5);
+    
+    wxPoint pos = event.GetPosition();
+    
+    if (clicked) {
+        dc.DrawLine(prePos.x, prePos.y, pos.x, pos.y);
+    }
+    clicked = true;
+    prePos = pos;
 }
 
 void MyCanvas::OnMouseEvent(wxMouseEvent& event) {
@@ -107,40 +114,5 @@ void MyCanvas::OnMouseEvent(wxMouseEvent& event) {
     PrepareDC(dc);
     dc.SetPen(*wxBLACK_PEN);
     
-    wxPoint pt(event.GetLogicalPosition(dc));
-    
-    // m_viewが作られてない。
-    //m_view->GetDocument()->Modify(true);
-    
-    dc.DrawLine(0, 0, pt.x, pt.y);
-}
-
-DrawingView::DrawingView() {canvas = (MyCanvas *)NULL;}
-
-DrawingView::~DrawingView() {}
-
-bool DrawingView::OnCreate(wxDocument *doc, long WXUNUSED(flags)) {
-    frame = (MyFrame *)NULL;
-    frame->Show(true);
-    Activate(true);
-    
-    return true;
-}
-
-void DrawingView::OnDraw(wxDC *dc) {
-    dc->SetFont(*wxNORMAL_FONT);
-    dc->SetPen(*wxBLACK_PEN);
-}
-
-void DrawingView::OnUpdate(wxView *sender, wxObject *hint) {
-    ;
-}
-
-bool DrawingView::OnClose(bool deleteWindow) {
-    return true;
-}
-
-void DrawingView::OnCut(wxCommandEvent& WXUNUSED(event)) {
-    wxDocument *doc = (wxDocument *)GetDocument();
 }
 

@@ -2,7 +2,6 @@
 #define WXTEST_H
 
 #include "wx/wxprec.h"
-#include "wx/docview.h"
 
 #ifndef WX_PRECOMP
     #include "wx/wx.h"
@@ -24,8 +23,6 @@ private:
 
 class MyCanvas;
 
-class DrawingView;
-
 class MyFrame : public wxFrame {
 public:
     MyFrame(const wxString& title);
@@ -45,7 +42,6 @@ public:
     double m_yUserScale;
     
     MyCanvas *m_canvas;
-    DrawingView *m_view;
     
 private:
     DECLARE_EVENT_TABLE()
@@ -58,7 +54,7 @@ END_EVENT_TABLE()
 
 class MyCanvas : public wxScrolledWindow {
 public:
-    MyCanvas(MyFrame* parent, DrawingView* view);
+    MyCanvas(MyFrame* parent);
     
     virtual void OnDraw(wxDC& dc);
     
@@ -71,8 +67,10 @@ public:
 protected:
     
 private:
+    bool clicked;
+    
     MyFrame* m_owner;
-    DrawingView* m_view;
+    wxPoint prePos;
     
     DECLARE_EVENT_TABLE();
 };
@@ -83,34 +81,6 @@ BEGIN_EVENT_TABLE(MyCanvas, wxScrolledWindow)
     EVT_LEFT_DOWN(MyCanvas::OnMouseLeftDown)
     EVT_MOUSE_EVENTS(MyCanvas::OnMouseEvent)
 END_EVENT_TABLE()
-
-
-class DrawingView : public wxView {
-public:
-    MyFrame *frame;
-    MyCanvas *canvas;
-    
-    DrawingView();
-    ~DrawingView();
-    
-    bool OnCreate(wxDocument *doc, long flags);
-    void OnDraw(wxDC *dc);
-    void OnUpdate(wxView *sender, wxObject *hint = (wxObject *)NULL);
-    bool OnClose(bool deleteWindow = true);
-    
-    void OnCut(wxCommandEvent& event);
-    
-private:
-    DECLARE_DYNAMIC_CLASS(DrawingView)
-    DECLARE_EVENT_TABLE()
-};
-
-IMPLEMENT_DYNAMIC_CLASS(DrawingView, wxView)
-
-BEGIN_EVENT_TABLE(DrawingView, wxView)
-    EVT_MENU(DOODLE_CUT, DrawingView::OnCut)
-END_EVENT_TABLE()
-
 
 IMPLEMENT_APP(MyApp)
 
