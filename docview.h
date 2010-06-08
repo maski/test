@@ -1,19 +1,16 @@
-#ifndef __DOCVIEWSAMPLEH__
-#define __DOCVIEWSAMPLEH__
+#ifndef DRAWTOOL_H
+#define DRAWTOOL_H
 
 #include "wx/docview.h"
 
 class wxDocManager;
 
 // Define a new application
-class MyApp: public wxApp
-{
+class MyApp: public wxApp {
 public:
     MyApp();
     bool OnInit();
     int OnExit();
-    
-    
 protected:
     wxDocManager* m_docManager;
 };
@@ -22,8 +19,7 @@ DECLARE_APP(MyApp)
 
 // Define a new frame
 class MyCanvas;
-class MyFrame: public wxDocParentFrame
-{
+class MyFrame: public wxDocParentFrame {
     DECLARE_CLASS(MyFrame)
 public:
     wxMenu *editMenu;
@@ -34,14 +30,31 @@ public:
     MyFrame(wxDocManager *manager, wxFrame *frame, wxWindowID id, const wxString& title, const wxPoint& pos, const wxSize& size,
         const long type);
     
+    void setFlagsAll(bool flags);
     void OnAbout(wxCommandEvent& event);
+    
+    void OnQuit(wxCommandEvent& event);
+    
+    void OnFreeLine(wxCommandEvent& event);
+    void OnRubberBand(wxCommandEvent& event);
+    void OnSelect(wxCommandEvent& event);
+    void OnDelete(wxCommandEvent& event);
+    void OnScale(wxCommandEvent& event);
     
     DECLARE_EVENT_TABLE()
 };
 
 extern MyFrame *GetMainFrame();
 
-#define DOCVIEW_CUT     1
-#define DOCVIEW_ABOUT   wxID_ABOUT
+enum {
+    DRAWTOOL_CUT,
+    DRAWTOOL_QUIT,
+    DRAWTOOL_ABOUT,
+    DRAWTOOL_FREELINE,
+    DRAWTOOL_RUBBERBAND,
+    DRAWTOOL_SELECT,
+    DRAWTOOL_DELETE,
+    DRAWTOOL_SCALE
+};
 
 #endif

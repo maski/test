@@ -1,14 +1,7 @@
-// For compilers that support precompilation, includes "wx/wx.h".
 #include "wx/wxprec.h"
 
 #ifndef WX_PRECOMP
     #include "wx/wx.h"
-#endif
-
-#if wxUSE_STD_IOSTREAM
-    #include "wx/ioswrap.h"
-#else
-    #include "wx/txtstrm.h"
 #endif
 
 #include "doc.h"
@@ -17,14 +10,20 @@
 IMPLEMENT_DYNAMIC_CLASS(DrawingDocument, wxDocument)
 
 DrawingDocument::~DrawingDocument() {
-    WX_CLEAR_LIST(wxList, doodleSegments);
+    WX_CLEAR_LIST(wxList, drawSegments);
 }
 
-DoodleSegment::DoodleSegment(const DoodleSegment& seg):wxObject() {
+DrawSegment::DrawSegment(const DrawSegment& seg) : wxObject() {
     wxList::compatibility_iterator node = seg.lines.GetFirst();
     while (node) {
-        DoodleLine *line = (DoodleLine *)node->GetData();
-        DoodleLine *newLine = new DoodleLine;
+        DrawLine *line = (DrawLine *)node->GetData();
+        DrawLine *newLine = new DrawLine;
+        
+        if (rect.x < line->x1) rect.x = line->x1;
+        if (rect.y < line->y1) rect.x = line->x1;
+        if (rect.width < abs(line->x2 - line->x1)) rect.width = abs(line->x2 - line->x1);
+        if (rect.height < abs(line->y2 - line->y1)) rect.height = abs(line->y2 - line->y1);
+        
         newLine->x1 = line->x1;
         newLine->y1 = line->y1;
         newLine->x2 = line->x2;
@@ -36,14 +35,15 @@ DoodleSegment::DoodleSegment(const DoodleSegment& seg):wxObject() {
     }
 }
 
-DoodleSegment::~DoodleSegment() {
+DrawSegment::~DrawSegment() {
     WX_CLEAR_LIST(wxList, lines);
 }
 
-void DoodleSegment::Draw(wxDC *dc) {
+void DrawSegment::Draw(wxDC *dc) {
+    // マウスがupのとき描写
     wxList::compatibility_iterator node = lines.GetFirst();
     while (node) {
-        DoodleLine *line = (DoodleLine *)node->GetData();
+        DrawLine *line = (DrawLine *)node->GetData();
         dc->DrawLine(line->x1, line->y1, line->x2, line->y2);
         node = node->GetNext();
     }
@@ -52,9 +52,9 @@ void DoodleSegment::Draw(wxDC *dc) {
 /*
 * Implementation of drawing command
 */
-
-DrawingCommand::DrawingCommand(const wxString& name, int command, DrawingDocument *ddoc, DoodleSegment *seg):
-wxCommand(true, name) {
+DrawingCommand::DrawingCommand(const wxString& name, int command,
+    DrawingDocument *ddoc, DrawSegment *seg) : wxCommand(true, name)
+{
     doc = ddoc;
     segment = seg;
     cmd = command;
@@ -65,28 +65,26 @@ DrawingCommand::~DrawingCommand() {
 }
 
 bool DrawingCommand::Do() {
-    switch (cmd)
-    {
-    case DOODLE_CUT:
+    switch (cmd) {
+        case DRAW_DELETE:
         {
             // Cut the last segment
-            if (doc->GetDoodleSegments().GetCount() > 0)
-            {
-                wxList::compatibility_iterator node = doc->GetDoodleSegments().GetLast();
-                if (segment)
-                    delete segment;
-
-                segment = (DoodleSegment *)node->GetData();
-                doc->GetDoodleSegments().Erase(node);
-
-                doc->Modify(true);
-                doc->UpdateAllViews();
+            if (segment) {
+                wxList *list = (wxList *)segment;
+                for (int i = 0; i < list->GetCount(); i++) {
+                    doc->GetDrawSegments().Erase(list->Item(i));
+                }
+                delete segment;
             }
+            doc->Modify(true);
+            doc->UpdateAllViews();
             break;
         }
-    case DOODLE_ADD:
-        {
-            doc->GetDoodleSegments().Append(new DoodleSegment(*segment));
+        
+        // 線が追加されたとき
+        case DRAW_ADD:
+        {   // ドキュメント（線のリストのリスト）にセグメント（線のリスト）を追加
+            doc->GetDrawSegments().Append(new DrawSegment(*segment));
             doc->Modify(true);
             doc->UpdateAllViews();
             break;
@@ -98,29 +96,23 @@ bool DrawingCommand::Do() {
 bool DrawingCommand::Undo() {
     switch (cmd)
     {
-    case DOODLE_CUT:
+        case DRAW_DELETE:
         {
-            // Paste the segment
-            if (segment)
-            {
-                doc->GetDoodleSegments().Append(segment);
-                doc->Modify(true);
-                doc->UpdateAllViews();
-                segment = (DoodleSegment *) NULL;
-            }
+            doc->GetDrawSegments().Append(new DrawSegment(*segment));
             doc->Modify(true);
             doc->UpdateAllViews();
             break;
         }
-    case DOODLE_ADD:
+        
+        // Undoされたとき
+        case DRAW_ADD:
         {
             // Cut the last segment
-            if (doc->GetDoodleSegments().GetCount() > 0)
-            {
-                wxList::compatibility_iterator node = doc->GetDoodleSegments().GetLast();
-                DoodleSegment *seg = (DoodleSegment *)node->GetData();
+            if (doc->GetDrawSegments().GetCount() > 0) {
+                wxList::compatibility_iterator node = doc->GetDrawSegments().GetLast();
+                DrawSegment *seg = (DrawSegment *)node->GetData();
                 delete seg;
-                doc->GetDoodleSegments().Erase(node);
+                doc->GetDrawSegments().Erase(node);
 
                 doc->Modify(true);
                 doc->UpdateAllViews();

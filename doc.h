@@ -1,11 +1,11 @@
-#ifndef __DOCSAMPLEH__
-#define __DOCSAMPLEH__
+#ifndef DOC_H
+#define DOC_H
 
 #include "wx/docview.h"
 #include "wx/cmdproc.h"
 
-// Plots a line from one point to the other
-class DoodleLine: public wxObject {
+// 線のオブジェクト
+class DrawLine: public wxObject {
 public:
     wxInt32 x1;
     wxInt32 y1;
@@ -13,40 +13,47 @@ public:
     wxInt32 y2;
 };
 
-// Contains a list of lines: represents a mouse-down doodle
-class DoodleSegment: public wxObject {
+// セグメント（繋がった線のリスト）
+// 最大、最小のx,yを追加する
+class DrawSegment : public wxObject {
 public:
     wxList lines;
+    
+    // セグメントを囲う矩形
+    wxRect rect;
 
-    DoodleSegment(){};
-    DoodleSegment(const DoodleSegment& seg);
-    ~DoodleSegment();
+    DrawSegment(){};
+    DrawSegment(const DrawSegment& seg);
+    ~DrawSegment();
 
     void Draw(wxDC *dc);
 };
 
-class DrawingDocument: public wxDocument {
+// ドキュメント（線のリストのリスト）
+class DrawingDocument : public wxDocument {
     DECLARE_DYNAMIC_CLASS(DrawingDocument)
 private:
 public:
-    wxList doodleSegments;
+    wxList drawSegments;
 
     DrawingDocument(){};
     ~DrawingDocument();
 
-    inline wxList& GetDoodleSegments() const { return (wxList&)doodleSegments; };
+    inline wxList& GetDrawSegments() const { return (wxList&)drawSegments; };
 };
 
-#define DOODLE_CUT          1
-#define DOODLE_ADD          2
+enum {
+    DRAW_DELETE,
+    DRAW_ADD
+};
 
 class DrawingCommand: public wxCommand {
 protected:
-    DoodleSegment *segment;
+    DrawSegment *segment;
     DrawingDocument *doc;
     int cmd;
 public:
-    DrawingCommand(const wxString& name, int cmd, DrawingDocument *ddoc, DoodleSegment *seg);
+    DrawingCommand(const wxString& name, int cmd, DrawingDocument *ddoc, DrawSegment *seg);
     ~DrawingCommand();
 
     bool Do();
